@@ -40,6 +40,21 @@ public class CosmosProfileStoreTest : IClassFixture<WebApplicationFactory<Progra
     [Fact]
     public async Task GetNonExistingProfile()
     {
-        Assert.Null(await _store.GetProfile(_profile.username));
+        Assert.Equal(null, await _store.GetProfile(_profile.username));
+    }
+    
+    [Theory]
+    [InlineData(null, "Foo", "Bar")]
+    [InlineData(" ", "Foo", "Bar")]
+    [InlineData("foobar", null, "Bar")]
+    [InlineData("foobar", " ", "Bar")]
+    [InlineData("foobar", "Foo", null)]
+    [InlineData("foobar", "Foo", " ")]
+    public async Task AddNewProfile_InvalidArgs(string username, string firstName, string lastName)
+    {
+        await Assert.ThrowsAsync<ArgumentException>(async () =>
+        {
+            await _store.UpsertProfile(new Profile(username, firstName, lastName)); 
+        });
     }
 }
