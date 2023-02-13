@@ -102,7 +102,7 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
             .ReturnsAsync(profile);
 
         var updatedProfile = profile with { firstName = "Foo2" };
-
+        
         var response = await _httpClient.PutAsync($"/Profile/{profile.username}",
             new StringContent(JsonConvert.SerializeObject(updatedProfile), Encoding.Default, "application/json"));
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -112,12 +112,35 @@ public class ProfileControllerTests : IClassFixture<WebApplicationFactory<Progra
     [Fact]
     public async Task UpdateProfile_NotFound()
     {
-        // TODO: Complete
+        var updatedProfile = new Profile("foobar","b","c");
+        var json = JsonConvert.SerializeObject(updatedProfile);
+        var content =
+            new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await _httpClient.PutAsync($"/Profile/{updatedProfile.username}", content);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        _profileStoreMock.Verify(mock=> mock.UpsertProfile(updatedProfile), Times.Never);
+    
     }
     
-    [Fact]
-    public async Task UpdateProfile_InvalidArgs()
+    [Theory]
+    [InlineData(null, "Bar")]
+    [InlineData( " ", "Bar")]
+    [InlineData("Foo", null)]
+    [InlineData("Foo", " ")]
+    public async Task UpdateProfile_InvalidArgs(string firstName, string lastName)
     {
-        // TODO: Complete
+        var profile = new Profile("foobar", "Foo", "Bar");
+        _profileStoreMock.Setup(m => m.GetProfile(profile.username))
+            .ReturnsAsync(profile);
+
+        
+        var updatedProfile = profile with { firstName = firstName, lastName = lastName };
+        
+        var json = JsonConvert.SerializeObject(updatedProfile);
+        var content =
+            new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await _httpClient.PutAsync($"/Profile/{profile.username}", content);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        _profileStoreMock.Verify(mock=> mock.UpsertProfile(updatedProfile), Times.Never);
     }
 }
